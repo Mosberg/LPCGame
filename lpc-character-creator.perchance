@@ -11,8 +11,8 @@ kv = {import:kv-plugin}
 // Importable plugin facade. The asset URLs are centralized so future bundle
 // updates only require changing the versioned URLs in this generator.
 lpcCreatorPlugin() =>
-  const BUNDLE_URL = "https://user.uploads.dev/file/4eda397c256bbb4b88764f92808b7152.js";
-  const CATALOG_URL = "https://user.uploads.dev/file/346a2b133cab453843c3d4d4905c6134.json";
+  const BUNDLE_URL = "https://raw.githubusercontent.com/Mosberg/LPCGame/refs/heads/main/src/scripts/bundle.js";
+  const CATALOG_URL = "https://raw.githubusercontent.com/Mosberg/LPCGame/refs/heads/main/src/data/catalog.json";
   const VERSION = "1.2.0";
   let modulePromise;
 
