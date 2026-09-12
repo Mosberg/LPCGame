@@ -1,0 +1,54 @@
+$meta
+  title = LPC Character Creator
+  description = Build and export Universal LPC characters with live previews, palette recolouring, animation sheets, and a lazy-loaded plugin API.
+  image = https://user.uploads.dev/file/4b4e2412916737e0955207d055e5149f.jpg
+  tags = lpc, character creator, sprite, spritesheet, avatar, pixel art, rpg, fantasy
+  header
+    mode = minimal
+
+kv = {import:kv-plugin}
+
+// Importable plugin facade. The asset URLs are centralized so future bundle
+// updates only require changing the versioned URLs in this generator.
+lpcCreatorPlugin() =>
+  const BUNDLE_URL = "https://user.uploads.dev/file/4eda397c256bbb4b88764f92808b7152.js";
+  const CATALOG_URL = "https://user.uploads.dev/file/346a2b133cab453843c3d4d4905c6134.json";
+  const VERSION = "1.2.0";
+  let modulePromise;
+
+  const load = () => {
+    if (!modulePromise) {
+      modulePromise = import(BUNDLE_URL).catch((error) => {
+        modulePromise = null;
+        throw error;
+      });
+    }
+    return modulePromise;
+  };
+
+  const options = (value) => Object.assign({ catalogUrl: CATALOG_URL }, value || {});
+  const call = async (method, args) => {
+    const module = await load();
+    if (typeof module[method] !== "function") {
+      throw new Error("LPC creator method is unavailable: " + method);
+    }
+    return module[method](...args);
+  };
+
+  return {
+    version: VERSION,
+    bundleUrl: BUNDLE_URL,
+    catalogUrl: CATALOG_URL,
+    load,
+    getCatalog: (o) => call("getCatalog", [options(o)]),
+    mount: (container, o) => call("mountLpcCreator", [container, options(o)]),
+    open: (o) => call("openCreator", [options(o)]),
+    renderFrame: (canvas, o) => call("renderFrame", [canvas, options(o)]),
+    renderAnimSheet: (canvas, animation, o) => call("renderAnimSheet", [canvas, animation, options(o)]),
+    renderFullSheet: (canvas, o) => call("renderFullSheet", [canvas, options(o)]),
+    createSprite: (canvas, o) => call("createSprite", [canvas, options(o)]),
+    characterToCode: (character, o) => call("characterToCode", [character, options(o)]),
+    characterFromCode: (code, o) => call("characterFromCode", [code, options(o)]),
+  };
+
+$output = [lpcCreatorPlugin()]
