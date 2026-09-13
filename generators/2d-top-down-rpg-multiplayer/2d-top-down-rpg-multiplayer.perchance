@@ -1,0 +1,363 @@
+$meta
+  title = Embervale — a 2D top-down RPG
+  description = Forge a hero with the Universal LPC character creator, then explore a procedurally generated overworld: train eighteen RuneScape-style skills, craft and smith, cast from three spellbooks, take quests from villagers, fight monsters, and delve the Emberdeep to face the Ember Warden.
+  tags = rpg, top down, pixel art, lpc, character creator, adventure, procedural, open world, skills, crafting, magic, game
+  header
+    mode = minimal
+
+// Character creation, sprite rendering and animation come from this plugin.
+lpc = {import:lpc-character-creator}
+// Per-user save slots and settings.
+kv = {import:kv-plugin}
+// Shared-world presence: see other heroes wandering the vale, and chat.
+createServerSocket = {import:server-plugin}
+
+// ---------------------------------------------------------------------------
+// Game configuration — safe to tweak.
+// ---------------------------------------------------------------------------
+config
+  title = Embervale
+  subtitle = Tales of the Emberdeep
+  tileSize = 32
+  worldTilesX = 180
+  worldTilesY = 140
+  worldSeed = 20250912
+  dungeonSeed = 771103
+  playerSpeed = 5.4
+  runMultiplier = 1.7
+  cameraLerp = 0.14
+  zoom = 2
+  dayLengthSeconds = 300
+  musicVolume = 0.4
+  sfxVolume = 0.5
+  // Skill tuning
+  skillXpMultiplier = 1
+  resourceRespawnSeconds = 22
+  nodeCount = 60
+  treeCount = 30
+  rockCount = 22
+  fishCount = 10
+  huntCount = 12
+  // Farming: real seconds for a crop to advance one growth stage.
+  cropStageSeconds = 40
+
+// Village name parts, used to name a fresh village each run.
+villageNames
+  Ashford
+  Embervale
+  Hollowmere
+  Bramblewick
+  Stonebrook
+  Duskdale
+  Thornbury
+  Greenmoor
+
+// ---------------------------------------------------------------------------
+// Balance data. Plain JS so it is easy to tune.
+// ---------------------------------------------------------------------------
+getEnemyDefs() =>
+  return [
+    { key: "slime",  name: "Verdant Slime",   hp: 16,  atk: 3,  def: 0, xp: 7,   gold: 3,   speed: 1.6, aggro: 3.4, reach: 0.75, cooldown: 1.3, scale: 0.72, tint: "#6ccf6a", heads: ["Orc", "Skeleton", "Zombie", "Lizard"], biomes: ["meadow", "forest"], drops: [["bones", 0.5], ["copperOre", 0.14]] },
+    { key: "wolf",   name: "Grey Wolf",       hp: 26,  atk: 6,  def: 1, xp: 13,  gold: 5,   speed: 3.2, aggro: 5.4, reach: 0.9,  cooldown: 1.0, scale: 0.95, tint: "#9aa3ad", heads: ["Werewolf", "Wolf", "Lizard"],       biomes: ["forest", "rocky"], drops: [["pelt", 0.5], ["rawRabbit", 0.25], ["bones", 0.6], ["sinew", 0.3]] },
+    { key: "bandit", name: "Mosswood Bandit", hp: 40,  atk: 9,  def: 3, xp: 24,  gold: 16,  speed: 2.7, aggro: 5.0, reach: 1.0,  cooldown: 1.1, scale: 1.0,  tint: "#c08a52", heads: ["Human", "Human"],                    biomes: ["forest", "rocky"], drops: [["ironOre", 0.2], ["bones", 0.4], ["bronzeArrows", 0.18], ["banditLedger", 0.05]] },
+    { key: "husk",   name: "Bone Husk",       hp: 36,  atk: 12, def: 2, xp: 22,  gold: 10,  speed: 2.3, aggro: 6.0, reach: 0.9,  cooldown: 1.0, scale: 1.0,  tint: "#d8d2c0", heads: ["Skeleton", "Zombie"],               biomes: ["dungeon"], drops: [["bones", 0.85], ["ironOre", 0.12]] },
+    { key: "wraith", name: "Ember Wraith",    hp: 56,  atk: 16, def: 4, xp: 44,  gold: 26,  speed: 3.0, aggro: 6.6, reach: 1.0,  cooldown: 0.9, scale: 1.05, tint: "#ff8a4c", heads: ["Vampire", "Zombie", "Skeleton"],     biomes: ["dungeon"], drops: [["coal", 0.3], ["starIron", 0.08], ["ruby", 0.05], ["cultIdol", 0.04]] },
+    { key: "warden", name: "The Ember Warden", hp: 320, atk: 24, def: 8, xp: 500, gold: 250, speed: 2.5, aggro: 9.0, reach: 1.35, cooldown: 1.2, scale: 1.55, tint: "#ff5a2a", heads: ["Skeleton", "Vampire"],               biomes: ["boss"], boss: true, drops: [["starIron", 1], ["wardenSigil", 1], ["runeOre", 0.5]] },
+  ];
+
+// Every item the game knows about. `cat` drives the pack's category filter;
+// `kind` is the functional type (equip slot for gear, behaviour for the rest).
+getItemDefs() =>
+  const defs = [];
+  const add = (o) => { defs.push(o); return o; };
+
+  // ---- metal tiers: tools, weapons, armour, bars ----
+  for (const [id, name, tier, lvl, price, col] of [
+    ["bronze",  "Bronze",  1, 1,  20,  "#b87333"],
+    ["iron",    "Iron",    2, 5,  70,  "#8f9298"],
+    ["steel",   "Steel",   3, 20, 220, "#b6bcc4"],
+    ["mithril", "Mithril", 4, 38, 620, "#6f9ecb"],
+    ["adamant", "Adamant", 5, 55, 1400,"#4f9a72"],
+    ["rune",    "Rune",    6, 75, 3200,"#5a78c8"],
+  ]) {
+    add({ key: id + "Axe",     name: name + " Axe",     kind: "tool", cat: "tool", price: Math.round(price * 0.8), icon: "axe:" + id,  tool: "axe",     tier, skillLevel: lvl, req: { skill: "woodcutting", level: lvl }, desc: "Chops " + name.toLowerCase() + " trees." });
+    add({ key: id + "Pick",    name: name + " Pickaxe", kind: "tool", cat: "tool", price: Math.round(price * 0.9), icon: "pick:" + id, tool: "pickaxe", tier, skillLevel: lvl, req: { skill: "mining", level: lvl }, desc: "Mines " + name.toLowerCase() + " ore." });
+    add({ key: id + "Sword",   name: name + " Sword",   kind: "weapon", cat: "equipment", sub: "weapon", price, icon: "sword:" + id, atk: 2 + tier * 4, req: { skill: "attack", level: lvl }, desc: "+" + (2 + tier * 4) + " melee attack. " + name + " forged." });
+    add({ key: id + "Plate",   name: name + " Platebody", kind: "armor", cat: "equipment", sub: "armor", price: Math.round(price * 1.1), icon: "plate:" + id, def: 2 + tier * 4, req: { skill: "defence", level: lvl }, desc: "+" + (2 + tier * 4) + " defence. " + name + " plate." });
+    add({ key: id + "Bar",     name: name + " Bar",     kind: "material", cat: "material", price: Math.round(price * 0.35), icon: "bar:" + id, desc: "A bar of " + name.toLowerCase() + ", ready for the anvil." });
+  }
+
+  // ---- tools that don't come in metal tiers ----
+  add({ key: "smallNet",   name: "Small Fishing Net", kind: "tool", cat: "tool", price: 25, icon: "net",     tool: "net",     tier: 1, desc: "Nets shrimp and other small fish in the shallows." });
+  add({ key: "fishingRod", name: "Fishing Rod",       kind: "tool", cat: "tool", price: 30, icon: "rod",     tool: "rod",     tier: 1, desc: "For the patient angler. Trout, salmon and their kin." });
+  add({ key: "harpoon",    name: "Harpoon",           kind: "tool", cat: "tool", price: 140, icon: "harpoon", tool: "harpoon", tier: 1, desc: "A barbed spear for the big catches." });
+  add({ key: "snare",      name: "Snare Kit",         kind: "tool", cat: "tool", price: 20, icon: "snare",   tool: "snare",   tier: 1, desc: "Wire, cord and a little patience. For hunting." });
+  add({ key: "knife",      name: "Knife",             kind: "tool", cat: "tool", price: 15, icon: "knife",   tool: "knife",   tier: 1, desc: "Whittles arrow shafts and trims fletchings." });
+  add({ key: "needle",     name: "Needle",            kind: "tool", cat: "tool", price: 10, icon: "needle",  tool: "needle",  tier: 1, desc: "For stitching leather and heavy cloth." });
+  add({ key: "chisel",     name: "Chisel",            kind: "tool", cat: "tool", price: 20, icon: "chisel",  tool: "chisel",  tier: 1, desc: "Shapes gems and fine stone." });
+
+  // ---- ores ----
+  for (const [id, name, lvl] of [["copper", "Copper", 1], ["tin", "Tin", 1], ["iron", "Iron", 15], ["coal", "Coal", 30], ["mithril", "Mithril", 45], ["adamant", "Adamant", 60], ["rune", "Rune", 80], ["gold", "Gold", 25]]) {
+    const oreKey = id === "iron" ? "ironOre" : id === "coal" ? "coal" : id + "Ore";
+    add({ key: oreKey, name: name + " Ore", kind: "material", cat: "material", price: lvl * 6 + 4, icon: "ore:" + id, desc: "Raw ore, " + lvl + "+ Mining." });
+  }
+
+  // ---- logs ----
+  for (const [id, name, lvl, price] of [["logs", "Logs", 1, 4], ["oakLogs", "Oak Logs", 15, 12], ["willowLogs", "Willow Logs", 30, 26], ["yewLogs", "Yew Logs", 45, 60], ["magicLogs", "Magic Logs", 60, 140]]) {
+    add({ key: id, name, kind: "material", cat: "material", price, icon: "log:" + id.replace("Logs", "") || "log", desc: "Cut from a " + String(name).replace(" Logs", "").toLowerCase() + " tree. " + lvl + "+ Woodcutting." });
+  }
+
+  // ---- fish (raw + cooked) ----
+  for (const [id, name, lvl, price] of [["rawShrimp", "Raw Shrimp", 1, 6], ["rawTrout", "Raw Trout", 15, 20], ["rawSalmon", "Raw Salmon", 30, 42], ["rawLobster", "Raw Lobster", 45, 90], ["rawShark", "Raw Shark", 60, 180]]) {
+    add({ key: id, name, kind: "material", cat: "material", price, icon: "fish:raw", desc: "Raw catch. Cook it before eating." });
+  }
+  for (const [id, name, lvl, heal] of [["shrimp", "Shrimp", 1, 22], ["trout", "Trout", 15, 42], ["salmon", "Salmon", 30, 68], ["lobster", "Lobster", 45, 100], ["shark", "Shark", 60, 150]]) {
+    add({ key: id, name: "Cooked " + name, kind: "food", cat: "consumable", sub: "food", price: heal, icon: "food", heal, desc: "Restores " + heal + " health." });
+  }
+
+  // ---- hunted meat & monster parts ----
+  add({ key: "rawRabbit", name: "Raw Rabbit", kind: "material", cat: "material", price: 14, icon: "meat:raw", desc: "Rabbit caught in a snare." });
+  add({ key: "cookedRabbit", name: "Roast Rabbit", kind: "food", cat: "consumable", sub: "food", price: 40, icon: "meat", heal: 55, desc: "Restores 55 health." });
+  add({ key: "rawBird", name: "Raw Bird", kind: "material", cat: "material", price: 10, icon: "meat:raw", desc: "Plucked from a snare." });
+  add({ key: "cookedBird", name: "Roast Bird", kind: "food", cat: "consumable", sub: "food", price: 30, icon: "meat", heal: 40, desc: "Restores 40 health." });
+  add({ key: "birdFeather", name: "Feather", kind: "material", cat: "material", price: 3, icon: "feather", desc: "Fletching material." });
+  add({ key: "pelt", name: "Thick Pelt", kind: "material", cat: "material", price: 40, icon: "hide", desc: "A wolf's winter coat. Smiths and tanners both want it." });
+  add({ key: "fur", name: "Animal Fur", kind: "material", cat: "material", price: 18, icon: "hide", desc: "Soft fur. Tan it into leather." });
+  add({ key: "sinew", name: "Sinew", kind: "material", cat: "material", price: 14, icon: "sinew", desc: "Twists into bowstrings." });
+  add({ key: "bowString", name: "Bowstring", kind: "material", cat: "material", price: 30, icon: "string", desc: "Tight, waxed and ready." });
+  add({ key: "leather", name: "Leather", kind: "material", cat: "material", price: 35, icon: "leather", desc: "Tanned hide, ready to work." });
+  add({ key: "arrowShaft", name: "Arrow Shaft", kind: "material", cat: "material", price: 2, icon: "shaft", desc: "Straight wood, cut to length." });
+  add({ key: "bones", name: "Bones", kind: "material", cat: "material", price: 4, icon: "bone", desc: "Somebody's remains. The cult would pay." });
+  add({ key: "starIron", name: "Star-Iron", kind: "material", cat: "material", price: 400, icon: "stariron", desc: "Sky-metal. Smiths whisper about it." });
+
+  // ---- gems & jewellery stock ----
+  for (const [id, name] of [["sapphire", "Sapphire"], ["emerald", "Emerald"], ["ruby", "Ruby"], ["diamond", "Diamond"]]) {
+    add({ key: id, name, kind: "material", cat: "material", price: id === "diamond" ? 900 : id === "ruby" ? 420 : id === "emerald" ? 240 : 160, icon: "gem:" + id, desc: "A cut " + name.toLowerCase() + "." });
+  }
+
+  // ---- fletching parts ----
+  for (const [id, name] of [["bronzeArrowtips", "Bronze"], ["ironArrowtips", "Iron"], ["steelArrowtips", "Steel"]]) {
+    add({ key: id, name: name + " Arrowtips", kind: "material", cat: "material", price: id === "steelArrowtips" ? 120 : id === "ironArrowtips" ? 40 : 12, icon: "arrowtips:" + id.replace("Arrowtips", ""), desc: "Heads for " + name.toLowerCase() + " arrows." });
+  }
+  for (const [id, name, dmg, price, reqLvl, tip] of [["bronzeArrows", "Bronze Arrows", 4, 20, 1, "bronze"], ["ironArrows", "Iron Arrows", 8, 55, 15, "iron"], ["steelArrows", "Steel Arrows", 13, 150, 30, "steel"]]) {
+    add({ key: id, name, kind: "ammo", cat: "equipment", sub: "ammo", price, icon: "arrows:" + tip, dmg, req: { skill: "range", level: reqLvl }, desc: "+" + dmg + " ranged damage. Consumed on use." });
+  }
+
+  // ---- weapons ----
+  add({ key: "sword", name: "Iron Blade", kind: "weapon", cat: "equipment", sub: "weapon", price: 120, icon: "sword:iron", atk: 6, req: { skill: "attack", level: 5 }, desc: "+6 melee attack." });
+  add({ key: "axe", name: "Woodsman's Axe", kind: "weapon", cat: "equipment", sub: "weapon", price: 260, icon: "axe:iron", atk: 13, req: { skill: "attack", level: 15 }, desc: "+13 melee attack." });
+  add({ key: "emberblade", name: "Ember Blade", kind: "weapon", cat: "equipment", sub: "weapon", price: 0, icon: "ember", atk: 22, magicAtk: 6, quest: true, req: { skill: "attack", level: 30 }, desc: "+22 melee attack, +6 magic. Wreathed in Emberdeep fire." });
+  for (const [id, name, reqLvl, dmg, price, icon] of [["shortbow", "Shortbow", 1, 4, 60, "bow:normal"], ["willowLongbow", "Willow Longbow", 20, 9, 320, "bow:willow"], ["yewLongbow", "Yew Longbow", 40, 15, 900, "bow:yew"], ["magicLongbow", "Magic Longbow", 65, 22, 2400, "bow:magic"]]) {
+    add({ key: id, name, kind: "bow", cat: "equipment", sub: "weapon", price, icon, rangeAtk: dmg, req: { skill: "range", level: reqLvl }, desc: "+" + dmg + " ranged attack. Needs arrows." });
+  }
+  add({ key: "firestaff", name: "Ember Staff", kind: "staff", cat: "equipment", sub: "weapon", price: 700, icon: "staff", magicAtk: 10, req: { skill: "magic", level: 25 }, desc: "+10 magic attack. Focuses Ember magic." });
+  add({ key: "aetherstaff", name: "Aether Staff", kind: "staff", cat: "equipment", sub: "weapon", price: 1600, icon: "staff:aether", magicAtk: 18, req: { skill: "magic", level: 50 }, desc: "+18 magic attack. Hums faintly." });
+
+  // ---- armour ----
+  add({ key: "leatherVest", name: "Leather Vest", kind: "armor", cat: "equipment", sub: "armor", price: 90, icon: "armor", def: 3, desc: "+3 defence." });
+  add({ key: "studded", name: "Studded Body", kind: "armor", cat: "equipment", sub: "armor", price: 300, icon: "armor:studded", def: 8, req: { skill: "defence", level: 15 }, desc: "+8 defence." });
+  add({ key: "chainmail", name: "Steel Chainmail", kind: "armor", cat: "equipment", sub: "armor", price: 650, icon: "armor:chain", def: 13, rangeAtk: 2, req: { skill: "defence", level: 25 }, desc: "+13 defence, +2 ranged." });
+  add({ key: "dragonhide", name: "Green Dragonhide Body", kind: "armor", cat: "equipment", sub: "armor", price: 1900, icon: "armor:dragon", def: 20, rangeAtk: 6, req: { skill: "defence", level: 40 }, desc: "+20 defence, +6 ranged." });
+
+  // ---- trinkets ----
+  add({ key: "ring", name: "Ring of Vigour", kind: "trinket", cat: "equipment", sub: "accessory", price: 180, icon: "ring", hpBonus: 20, desc: "+20 max health." });
+  add({ key: "sapphireRing", name: "Sapphire Ring", kind: "trinket", cat: "equipment", sub: "accessory", price: 320, icon: "ring:sapphire", mpBonus: 22, magicAtk: 3, desc: "+22 max aether, +3 magic." });
+  add({ key: "rubyAmulet", name: "Ruby Amulet", kind: "trinket", cat: "equipment", sub: "accessory", price: 700, icon: "amulet:ruby", hpBonus: 30, def: 4, desc: "+30 health, +4 defence." });
+  add({ key: "emeraldAmulet", name: "Emerald Amulet of Ranging", kind: "trinket", cat: "equipment", sub: "accessory", price: 620, icon: "amulet:emerald", rangeAtk: 8, hpBonus: 10, desc: "+8 ranged, +10 health." });
+  add({ key: "emberAmulet", name: "Ember Amulet", kind: "trinket", cat: "equipment", sub: "accessory", price: 0, icon: "amulet:ember", magicAtk: 8, hpBonus: 15, quest: true, desc: "Given by the Order. +8 magic, +15 health." });
+
+  // ---- consumables ----
+  add({ key: "potion", name: "Health Draught", kind: "food", cat: "consumable", sub: "potion", price: 25, icon: "potion", heal: 45, desc: "Restores 45 health." });
+  add({ key: "greaterPotion", name: "Greater Draught", kind: "food", cat: "consumable", sub: "potion", price: 70, icon: "potion:greater", heal: 110, desc: "Restores 110 health." });
+  add({ key: "ether", name: "Mana Tonic", kind: "food", cat: "consumable", sub: "potion", price: 30, icon: "ether", mana: 30, desc: "Restores 30 aether." });
+  add({ key: "greaterEther", name: "Greater Tonic", kind: "food", cat: "consumable", sub: "potion", price: 80, icon: "ether:greater", mana: 75, desc: "Restores 75 aether." });
+  for (const [id, name, icon, buff, price] of [
+    ["attackPotion",  "Potion of Fury",      "potion:red",    { kind: "strength", mul: 0.28, add: 3, dur: 45 }, 40],
+    ["defencePotion", "Potion of Stoneskin", "potion:blue",   { kind: "defence",  mul: 0.3,  add: 3, dur: 45 }, 40],
+    ["magicPotion",   "Potion of Insight",   "potion:purple", { kind: "magic",    mul: 0.35, add: 3, dur: 45 }, 55],
+    ["rangePotion",   "Potion of the Eye",   "potion:green",  { kind: "range",    mul: 0.3,  add: 3, dur: 45 }, 45],
+    ["agilityPotion", "Potion of Wind",      "potion:teal",   { kind: "speed",    mul: 0.4,  dur: 40 },          35],
+  ]) add({ key: id, name, kind: "food", cat: "consumable", sub: "potion", price, icon, buff, desc: "Grants a temporary " + buff.kind + " bonus." });
+  add({ key: "scrollHome", name: "Scroll of Homeward", kind: "food", cat: "consumable", sub: "scroll", price: 60, icon: "scroll", teleport: "village", desc: "Read to be returned to the village well." });
+  add({ key: "scrollDeep", name: "Scroll of the Deep", kind: "food", cat: "consumable", sub: "scroll", price: 120, icon: "scroll:red", teleport: "dungeon", desc: "Read to be cast down into the Emberdeep." });
+
+  // ---- farming ----
+  add({ key: "potatoSeed", name: "Potato Seed", kind: "seed", cat: "material", crop: "potato", price: 6, icon: "seed", desc: "Plant in a farming patch." });
+  add({ key: "herbSeed", name: "Herb Seed", kind: "seed", cat: "material", crop: "herb", price: 18, icon: "seed:herb", desc: "Plant in a farming patch." });
+  add({ key: "flowerSeed", name: "Flower Seed", kind: "seed", cat: "material", crop: "flower", price: 12, icon: "seed:flower", desc: "Plant in a farming patch." });
+  add({ key: "moonpetalSeed", name: "Moonpetal Seed", kind: "seed", cat: "material", crop: "moonpetal", price: 45, icon: "seed:moon", desc: "A seed that only stirs in the dark." });
+  add({ key: "potato", name: "Potato", kind: "food", cat: "consumable", sub: "food", price: 12, icon: "potato", heal: 18, desc: "A plain, honest tuber." });
+  add({ key: "herbs", name: "Clean Herbs", kind: "material", cat: "material", price: 22, icon: "herbs", desc: "Brewing stock. Keep away from the cook." });
+  add({ key: "flower", name: "Cut Flowers", kind: "material", cat: "misc", price: 16, icon: "flower", desc: "Pretty. The merchant will take them." });
+
+  // ---- quest & key items ----
+  add({ key: "moonpetal", name: "Moonpetal", kind: "quest", cat: "quest", price: 0, icon: "herb", desc: "A glowing forest herb." });
+  add({ key: "key", name: "Emberdeep Key", kind: "quest", cat: "key", price: 0, icon: "key", desc: "Opens the warden's gate." });
+  add({ key: "wardenSigil", name: "Warden's Sigil", kind: "quest", cat: "key", price: 0, icon: "sigil", desc: "Taken from the Warden's heart. It is still warm." });
+  add({ key: "oldTome", name: "Mildewed Tome", kind: "quest", cat: "quest", price: 0, icon: "tome", desc: "A fragment of the Order's history." });
+  add({ key: "lostLocket", name: "Lost Locket", kind: "quest", cat: "quest", price: 0, icon: "locket", desc: "A villager's keepsake. Someone misses it." });
+  add({ key: "banditLedger", name: "Bandit Ledger", kind: "quest", cat: "quest", price: 0, icon: "tome:red", desc: "Names, debts and hideouts." });
+  add({ key: "cultIdol", name: "Cult Idol", kind: "quest", cat: "quest", price: 0, icon: "idol", desc: "Iron and bone, shaped to listen." });
+  add({ key: "hermitMap", name: "Hermit's Map", kind: "quest", cat: "quest", price: 0, icon: "map", desc: "Half a map to something buried." });
+
+  return defs;
+
+// Recipes for the four artisan skills. `station` gates where they can be made:
+// "anvil" (smithing), "furnace" (smelting), "range" (cooking), "anywhere".
+// req is implicit in `level`; `tool` is required but never consumed.
+// xp is per craft; out = [itemKey, count].
+getRecipeDefs() =>
+  const smith = (id, level, xp, station, inItems, out, name, tool) => ({ id, skill: "smithing", station, level, xp, in: inItems, out, name, tool });
+  const cook  = (id, level, xp, inItem, outItem, name) => ({ id, skill: "cooking", station: "range", level, xp, in: [[inItem, 1]], out: [outItem, 1], name });
+  const craft = (id, level, xp, station, inItems, out, name, tool) => ({ id, skill: "crafting", station, level, xp, in: inItems, out, name, tool });
+  const fletch= (id, level, xp, inItems, out, name, tool) => ({ id, skill: "fletching", station: "anywhere", level, xp, in: inItems, out, name, tool });
+
+  return [
+    // ---- Smithing: smelt ores into bars (furnace) ----
+    smith("smeltBronze", 1, 8, "furnace", [["copperOre", 1], ["tinOre", 1]], ["bronzeBar", 1], "Smelt Bronze Bar"),
+    smith("smeltIron", 15, 22, "furnace", [["ironOre", 1]], ["ironBar", 1], "Smelt Iron Bar"),
+    smith("smeltSteel", 20, 34, "furnace", [["ironOre", 1], ["coal", 2]], ["steelBar", 1], "Smelt Steel Bar"),
+    smith("smeltMithril", 50, 70, "furnace", [["mithrilOre", 1], ["coal", 4]], ["mithrilBar", 1], "Smelt Mithril Bar"),
+    smith("smeltAdamant", 70, 110, "furnace", [["adamantOre", 1], ["coal", 6]], ["adamantBar", 1], "Smelt Adamant Bar"),
+    smith("smeltRune", 85, 180, "furnace", [["runeOre", 1], ["coal", 8], ["starIron", 1]], ["runeBar", 1], "Smelt Rune Bar"),
+    smith("smeltGold", 1, 20, "furnace", [["goldOre", 1]], ["goldBar", 1], "Smelt a Gold Bar"),
+
+    // ---- Smithing: forge weapons (anvil) ----
+    smith("forgeBronzeSword", 1, 26, "anvil", [["bronzeBar", 1]], ["bronzeSword", 1], "Forge Bronze Sword"),
+    smith("forgeIronSword", 15, 60, "anvil", [["ironBar", 2]], ["sword", 1], "Forge Iron Blade"),
+    smith("forgeSteelSword", 30, 130, "anvil", [["steelBar", 2]], ["steelSword", 1], "Forge Steel Sword"),
+    smith("forgeMithrilSword", 50, 300, "anvil", [["mithrilBar", 2]], ["mithrilSword", 1], "Forge Mithril Sword"),
+    smith("forgeAdamantSword", 70, 560, "anvil", [["adamantBar", 2]], ["adamantSword", 1], "Forge Adamant Sword"),
+    smith("forgeRuneSword", 85, 900, "anvil", [["runeBar", 2], ["starIron", 1]], ["runeSword", 1], "Forge Rune Sword"),
+
+    // ---- Smithing: forge armour (anvil) ----
+    smith("forgeBronzePlate", 5, 40, "anvil", [["bronzeBar", 3]], ["bronzePlate", 1], "Forge Bronze Platebody"),
+    smith("forgeIronPlate", 20, 96, "anvil", [["ironBar", 4]], ["ironPlate", 1], "Forge Iron Platebody"),
+    smith("forgeSteelPlate", 35, 190, "anvil", [["steelBar", 5]], ["steelPlate", 1], "Forge Steel Platebody"),
+    smith("forgeMithrilPlate", 55, 420, "anvil", [["mithrilBar", 5]], ["mithrilPlate", 1], "Forge Mithril Platebody"),
+    smith("forgeAdamantPlate", 72, 700, "anvil", [["adamantBar", 5]], ["adamantPlate", 1], "Forge Adamant Platebody"),
+    smith("forgeRunePlate", 88, 1200, "anvil", [["runeBar", 5], ["starIron", 1]], ["runePlate", 1], "Forge Rune Platebody"),
+
+    // ---- Smithing: tools (anvil) ----
+    smith("forgeBronzeAxe", 1, 20, "anvil", [["bronzeBar", 1]], ["bronzeAxe", 1], "Forge Bronze Axe"),
+    smith("forgeIronAxe", 15, 55, "anvil", [["ironBar", 1]], ["ironAxe", 1], "Forge Iron Axe"),
+    smith("forgeSteelAxe", 30, 120, "anvil", [["steelBar", 1]], ["steelAxe", 1], "Forge Steel Axe"),
+    smith("forgeMithrilAxe", 50, 280, "anvil", [["mithrilBar", 1]], ["mithrilAxe", 1], "Forge Mithril Axe"),
+    smith("forgeBronzePick", 1, 20, "anvil", [["bronzeBar", 1]], ["bronzePick", 1], "Forge Bronze Pickaxe"),
+    smith("forgeIronPick", 15, 55, "anvil", [["ironBar", 1]], ["ironPick", 1], "Forge Iron Pickaxe"),
+    smith("forgeSteelPick", 30, 120, "anvil", [["steelBar", 1]], ["steelPick", 1], "Forge Steel Pickaxe"),
+    smith("forgeMithrilPick", 50, 280, "anvil", [["mithrilBar", 1]], ["mithrilPick", 1], "Forge Mithril Pickaxe"),
+    smith("forgeArrowtips", 5, 18, "anvil", [["bronzeBar", 1]], ["bronzeArrowtips", 15], "Forge Bronze Arrowtips"),
+    smith("forgeIronTips", 18, 40, "anvil", [["ironBar", 1]], ["ironArrowtips", 15], "Forge Iron Arrowtips"),
+    smith("forgeSteelTips", 32, 72, "anvil", [["steelBar", 1]], ["steelArrowtips", 15], "Forge Steel Arrowtips"),
+
+    // ---- Cooking (range) ----
+    cook("cookShrimp", 1, 30, "rawShrimp", "shrimp", "Cook Shrimp"),
+    cook("cookTrout", 15, 70, "rawTrout", "trout", "Cook Trout"),
+    cook("cookSalmon", 30, 110, "rawSalmon", "salmon", "Cook Salmon"),
+    cook("cookLobster", 45, 160, "rawLobster", "lobster", "Cook Lobster"),
+    cook("cookShark", 60, 230, "rawShark", "shark", "Cook Shark"),
+    cook("cookRabbit", 10, 60, "rawRabbit", "cookedRabbit", "Roast Rabbit"),
+    cook("cookBird", 5, 40, "rawBird", "cookedBird", "Roast Bird"),
+    cook("cookPotato", 1, 20, "potato", "potato", "Bake a Potato"),
+
+    // ---- Fletching (anywhere) ----
+    fletch("shafts", 1, 8, [["logs", 1]], ["arrowShaft", 15], "Cut Arrow Shafts", "knife"),
+    fletch("shaftsOak", 15, 14, [["oakLogs", 1]], ["arrowShaft", 25], "Cut Oak Shafts", "knife"),
+    fletch("shaftsWillow", 30, 22, [["willowLogs", 1]], ["arrowShaft", 40], "Cut Willow Shafts", "knife"),
+    fletch("shortbow", 10, 30, [["logs", 1], ["bowString", 1]], ["shortbow", 1], "String a Shortbow", "knife"),
+    fletch("willowLongbow", 25, 70, [["willowLogs", 1], ["bowString", 1]], ["willowLongbow", 1], "String a Willow Longbow", "knife"),
+    fletch("yewLongbow", 45, 150, [["yewLogs", 1], ["bowString", 1]], ["yewLongbow", 1], "String a Yew Longbow", "knife"),
+    fletch("magicLongbow", 70, 290, [["magicLogs", 1], ["bowString", 1]], ["magicLongbow", 1], "String a Magic Longbow", "knife"),
+    fletch("bronzeArrows", 1, 14, [["arrowShaft", 15], ["birdFeather", 15], ["bronzeArrowtips", 15]], ["bronzeArrows", 15], "Fletch Bronze Arrows", "knife"),
+    fletch("ironArrows", 18, 34, [["arrowShaft", 15], ["birdFeather", 15], ["ironArrowtips", 15]], ["ironArrows", 15], "Fletch Iron Arrows", "knife"),
+    fletch("steelArrows", 32, 60, [["arrowShaft", 15], ["birdFeather", 15], ["steelArrowtips", 15]], ["steelArrows", 15], "Fletch Steel Arrows", "knife"),
+
+    // ---- Crafting (anywhere unless a station is named) ----
+    craft("tanLeather", 1, 12, "anywhere", [["fur", 1]], ["leather", 1], "Tan Fur to Leather"),
+    craft("tanPelt", 10, 26, "anywhere", [["pelt", 1]], ["leather", 2], "Cure a Thick Pelt"),
+    craft("spinString", 5, 16, "anywhere", [["sinew", 1]], ["bowString", 1], "Twist Bowstring"),
+    craft("leatherBody", 10, 40, "anywhere", [["leather", 2]], ["leatherVest", 1], "Stitch a Leather Vest", "needle"),
+    craft("studdedBody", 20, 90, "anywhere", [["leather", 4], ["ironBar", 1]], ["studded", 1], "Stud a Leather Body", "needle"),
+    craft("sapphireRing", 20, 80, "anywhere", [["sapphire", 1], ["goldBar", 1]], ["sapphireRing", 1], "Set a Sapphire Ring", "chisel"),
+    craft("rubyAmulet", 45, 160, "anywhere", [["ruby", 1], ["goldBar", 1], ["bowString", 1]], ["rubyAmulet", 1], "String a Ruby Amulet", "chisel"),
+    craft("emeraldAmulet", 35, 130, "anywhere", [["emerald", 1], ["goldBar", 1], ["bowString", 1]], ["emeraldAmulet", 1], "String an Emerald Amulet", "chisel"),
+    craft("dragonhide", 40, 220, "anywhere", [["leather", 3], ["emerald", 1], ["pelt", 2]], ["dragonhide", 1], "Stitch Dragonhide Body", "needle"),
+    craft("emberStaff", 30, 180, "anywhere", [["oakLogs", 2], ["ruby", 1], ["coal", 3]], ["firestaff", 1], "Carve an Ember Staff", "knife"),
+    craft("aetherStaff", 60, 420, "anywhere", [["yewLogs", 2], ["diamond", 1], ["starIron", 1]], ["aetherstaff", 1], "Carve an Aether Staff", "knife"),
+    craft("brewPotion", 5, 25, "anywhere", [["herbs", 2]], ["potion", 1], "Brew a Health Draught"),
+    craft("brewEther", 8, 28, "anywhere", [["moonpetal", 1]], ["ether", 1], "Brew a Mana Tonic"),
+    craft("brewGreaterPotion", 20, 70, "anywhere", [["herbs", 4], ["moonpetal", 1]], ["greaterPotion", 1], "Brew a Greater Draught"),
+    craft("brewGreaterEther", 30, 90, "anywhere", [["moonpetal", 2], ["sapphire", 1]], ["greaterEther", 1], "Brew a Greater Tonic"),
+    craft("brewFury", 25, 60, "anywhere", [["herbs", 2], ["bones", 2]], ["attackPotion", 1], "Brew a Potion of Fury"),
+    craft("brewStoneskin", 25, 60, "anywhere", [["herbs", 2], ["leather", 1]], ["defencePotion", 1], "Brew a Potion of Stoneskin"),
+    craft("brewInsight", 35, 85, "anywhere", [["herbs", 3], ["sapphire", 1]], ["magicPotion", 1], "Brew a Potion of Insight"),
+    craft("brewEye", 35, 85, "anywhere", [["herbs", 3], ["bowString", 1]], ["rangePotion", 1], "Brew a Potion of the Eye"),
+    craft("brewWind", 30, 70, "anywhere", [["herbs", 2], ["birdFeather", 4]], ["agilityPotion", 1], "Brew a Potion of Wind"),
+    craft("scrollHome", 15, 45, "anywhere", [["herbs", 1], ["leather", 1]], ["scrollHome", 1], "Inscribe a Homeward Scroll"),
+    craft("scrollDeep", 40, 140, "anywhere", [["herbs", 2], ["starIron", 1]], ["scrollDeep", 1], "Inscribe a Deep Scroll"),
+  ];
+
+// ---------------------------------------------------------------------------
+// Skills: gatherable nodes and what the player must have to work them.
+// Read by src/resources.js. `tool`: required tool type; `tier`: minimum tool
+// tier; `level`: minimum skill. `gathers`: successful rolls before depletion.
+// ---------------------------------------------------------------------------
+getResourceDefs() =>
+  const node = (id, kind, skill, level, xp, tool, tier, product, gathers, respawn, name, extra) => Object.assign({ id, kind, skill, level, xp, tool, tier, product, gathers, respawn, name }, extra || {});
+  return [
+    // Woodcutting
+    node("treeBasic", "tree", "woodcutting", 1, 25, "axe", 1, "logs", 5, 16, "Tree"),
+    node("treeOak", "tree", "woodcutting", 15, 38, "axe", 1, "oakLogs", 5, 22, "Oak Tree"),
+    node("treeWillow", "tree", "woodcutting", 30, 68, "axe", 2, "willowLogs", 4, 28, "Willow Tree"),
+    node("treeYew", "tree", "woodcutting", 45, 120, "axe", 3, "yewLogs", 4, 36, "Yew Tree"),
+    node("treeMagic", "tree", "woodcutting", 60, 210, "axe", 4, "magicLogs", 3, 48, "Magic Tree"),
+    node("treeSpirit", "tree", "woodcutting", 75, 320, "axe", 5, "magicLogs", 3, 60, "Spirit Tree"),
+
+    // Mining
+    node("rockCopper", "rock", "mining", 1, 18, "pickaxe", 1, "copperOre", 4, 14, "Copper Rock"),
+    node("rockTin", "rock", "mining", 1, 18, "pickaxe", 1, "tinOre", 4, 14, "Tin Rock"),
+    node("rockIron", "rock", "mining", 15, 35, "pickaxe", 1, "ironOre", 4, 20, "Iron Rock"),
+    node("rockCoal", "rock", "mining", 30, 50, "pickaxe", 2, "coal", 4, 26, "Coal Rock"),
+    node("rockGold", "rock", "mining", 25, 65, "pickaxe", 2, "goldOre", 3, 30, "Gold Rock"),
+    node("rockMithril", "rock", "mining", 45, 80, "pickaxe", 3, "mithrilOre", 3, 36, "Mithril Rock"),
+    node("rockAdamant", "rock", "mining", 60, 120, "pickaxe", 4, "adamantOre", 3, 46, "Adamant Rock"),
+    node("rockRune", "rock", "mining", 80, 200, "pickaxe", 5, "runeOre", 2, 60, "Rune Rock"),
+    node("rockGem", "rock", "mining", 20, 45, "pickaxe", 2, "sapphire", 1, 50, "Gem Rock", { gems: true }),
+
+    // Fishing
+    node("fishShrimp", "fish", "fishing", 1, 20, "net", 1, "rawShrimp", 6, 12, "Shrimp Shoal"),
+    node("fishTrout", "fish", "fishing", 15, 45, "rod", 1, "rawTrout", 5, 18, "Trout Run"),
+    node("fishSalmon", "fish", "fishing", 30, 75, "rod", 2, "rawSalmon", 4, 24, "Salmon Run"),
+    node("fishLobster", "fish", "fishing", 45, 110, "harpoon", 1, "rawLobster", 3, 30, "Lobster Shelf"),
+    node("fishShark", "fish", "fishing", 60, 160, "harpoon", 2, "rawShark", 3, 38, "Shark Water"),
+
+    // Hunter
+    node("huntRabbit", "hunter", "hunter", 1, 30, "snare", 1, "rawRabbit", 4, 24, "Rabbit Burrow"),
+    node("huntBird", "hunter", "hunter", 10, 44, "snare", 1, "rawBird", 4, 24, "Bird Flock"),
+    node("huntFur", "hunter", "hunter", 25, 70, "snare", 2, "fur", 3, 32, "Fur Game"),
+    node("huntImp", "hunter", "hunter", 50, 150, "snare", 3, "sapphire", 2, 60, "Wild Imp", { rare: true }),
+
+    // Farming patches are planted, not gathered in place.
+    node("patch", "patch", "farming", 1, 0, null, 0, null, 0, 0, "Farming Patch"),
+  ];
+
+// Slayer master tasks. `enemy` matches an enemy key; need = kills required.
+getSlayerTasks() =>
+  return [
+    { id: "taskWolf",   enemy: "wolf",   need: 8, level: 1,  xp: 60,  gold: 120, name: "Grey Wolves" },
+    { id: "taskSlime",  enemy: "slime",  need: 12, level: 1,  xp: 40,  gold: 90,  name: "Verdant Slimes" },
+    { id: "taskBandit", enemy: "bandit", need: 6, level: 12, xp: 120, gold: 200, name: "Mosswood Bandits" },
+    { id: "taskHusk",   enemy: "husk",   need: 8, level: 20, xp: 150, gold: 240, name: "Bone Husks" },
+    { id: "taskWraith", enemy: "wraith", need: 6, level: 35, xp: 280, gold: 380, name: "Ember Wraiths" },
+  ];
+
+// Farming crops. `seed` is consumed on planting; maturity ripens after
+// `grow` seconds (scaled by config.cropStageSeconds / 40).
+getFarmCrops() =>
+  return [
+    { id: "potato",    name: "Potatoes",    seed: "potatoSeed",    level: 1,  xp: 10, grow: 60,  yield: ["potato", 3] },
+    { id: "flower",    name: "Cut Flowers", seed: "flowerSeed",    level: 10, xp: 18, grow: 90,  yield: ["flower", 3] },
+    { id: "herb",      name: "Clean Herbs", seed: "herbSeed",      level: 15, xp: 26, grow: 130, yield: ["herbs", 3] },
+    { id: "moonpetal", name: "Moonpetals",  seed: "moonpetalSeed", level: 25, xp: 50, grow: 190, yield: ["moonpetal", 2] },
+  ];

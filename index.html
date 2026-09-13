@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Embervale — Tales of the Emberdeep. A procedural 2D top-down action RPG built for Perchance."
+    />
+    <meta name="author" content="Mosberg" />
+    <title>Embervale — Tales of the Emberdeep</title>
+
+    <link rel="icon" href="src/images/embervale.webp" />
+    <link rel="stylesheet" href="src/styles/style.css" />
+  </head>
+
+  <body>
+    <div class="page-shell">
+      <header class="site-header">
+        <div class="container site-header__inner">
+          <a class="brand" href="#top" aria-label="Embervale home">
+            <span class="brand__mark" aria-hidden="true">✦</span>
+            <span>Embervale</span>
+          </a>
+
+          <nav class="site-nav" aria-label="Primary navigation">
+            <a href="#features">Features</a>
+            <a href="#world">The Vale</a>
+            <a href="#controls">Controls</a>
+            <a class="site-nav__play" data-game-link href="#">Play now</a>
+          </nav>
+        </div>
+      </header>
+
+      <main id="top">
+        <section class="hero" aria-labelledby="hero-title">
+          <canvas
+            class="hero__canvas"
+            id="heroCanvas"
+            aria-hidden="true"
+          ></canvas>
+
+          <div class="container hero__content">
+            <p class="hero__eyebrow">A procedural action RPG for Perchance</p>
+            <h1 class="hero__title" id="hero-title">
+              Embervale
+              <span>Tales of the Emberdeep</span>
+            </h1>
+
+            <p class="hero__description">
+              Gather, refine, craft and fight your way through a living
+              pixel-art vale. Train eighteen skills, uncover forgotten lore, and
+              descend into the Emberdeep to face the Warden below.
+            </p>
+
+            <div class="hero__actions">
+              <a class="button button--primary" data-game-link href="#">
+                Enter the Vale
+                <span aria-hidden="true">→</span>
+              </a>
+              <a class="button button--secondary" href="#features">
+                Explore the game
+              </a>
+            </div>
+
+            <p class="hero__note">
+              Built by <a data-author-link href="#" rel="noopener">Mosberg</a>
+              · No image assets · Reproducible world seed
+            </p>
+          </div>
+
+          <a class="hero__scroll" href="#features">Discover</a>
+        </section>
+
+        <section class="section" id="features" aria-labelledby="features-title">
+          <div class="container">
+            <p class="section__eyebrow">Your adventure begins</p>
+            <h2 class="section__title" id="features-title">
+              A world made to be played your way.
+            </h2>
+            <p class="section__intro">
+              Embervale combines the deliberate progression of an old-school RPG
+              with the discovery and atmosphere of a hand-painted fantasy world.
+            </p>
+
+            <div class="feature-grid">
+              <article class="feature-card fade-in">
+                <span class="feature-card__icon" aria-hidden="true">⚔</span>
+                <h3>Master the old ways</h3>
+                <p>
+                  Train eighteen skills from Attack and Magic to Farming, Slayer
+                  and Smithing on the exact OSRS-style progression curve.
+                </p>
+              </article>
+
+              <article class="feature-card fade-in">
+                <span class="feature-card__icon" aria-hidden="true">⌂</span>
+                <h3>Make the vale yours</h3>
+                <p>
+                  Gather resources, grow moonpetals, discover recipes, store
+                  your treasures in the village bank and adopt a loyal
+                  companion.
+                </p>
+              </article>
+
+              <article class="feature-card fade-in">
+                <span class="feature-card__icon" aria-hidden="true">✦</span>
+                <h3>Descend into legend</h3>
+                <p>
+                  Follow quests through ruins and forests, unlock three
+                  spellbooks, and enter the Emberdeep to challenge its ancient
+                  warden.
+                </p>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section
+          class="section world-section"
+          id="world"
+          aria-labelledby="world-title"
+        >
+          <div class="container world-layout">
+            <div
+              class="world-map fade-in"
+              aria-label="Procedurally generated map illustration"
+            >
+              <canvas
+                class="world-map__canvas"
+                id="worldCanvas"
+                aria-hidden="true"
+              ></canvas>
+              <span class="world-map__label world-map__label--village"
+                >Ashenroot Village</span
+              >
+              <span class="world-map__label world-map__label--dungeon"
+                >Emberdeep</span
+              >
+            </div>
+
+            <div>
+              <p class="section__eyebrow">The world beneath the ash</p>
+              <h2 class="section__title" id="world-title">
+                Every journey starts with a seed.
+              </h2>
+              <p class="section__intro">
+                The overworld, dungeon, terrain, props and effects are painted
+                at runtime. A fixed seed means the Vale is consistent for every
+                adventurer — while still feeling alive through its day, night
+                and weather cycles.
+              </p>
+
+              <ul class="world-list">
+                <li>
+                  <span class="world-list__marker" aria-hidden="true"></span>
+                  <span>
+                    <strong>Procedural overworld</strong>
+                    <span
+                      >Biomes, roads, ruins, resource nodes, a walled village
+                      and a hidden cave entrance.</span
+                    >
+                  </span>
+                </li>
+                <li>
+                  <span class="world-list__marker" aria-hidden="true"></span>
+                  <span>
+                    <strong>The Emberdeep dungeon</strong>
+                    <span
+                      >Rooms, corridors, braziers and a boss hall beneath a
+                      key-locked gate.</span
+                    >
+                  </span>
+                </li>
+                <li>
+                  <span class="world-list__marker" aria-hidden="true"></span>
+                  <span>
+                    <strong>A shared world, optionally</strong>
+                    <span
+                      >Other heroes may wander beside you as colourful echoes
+                      with names and chat bubbles.</span
+                    >
+                  </span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section
+          class="section section--compact"
+          aria-labelledby="systems-title"
+        >
+          <div class="container">
+            <p class="section__eyebrow">The core loop</p>
+            <h2 class="section__title" id="systems-title">
+              Gather. Refine. Risk everything.
+            </h2>
+
+            <div class="systems">
+              <article class="system fade-in">
+                <span class="system__number">01</span>
+                <h3>Gather</h3>
+                <p>
+                  Chop, mine, fish, trap and forage across a living procedural
+                  landscape.
+                </p>
+              </article>
+
+              <article class="system fade-in">
+                <span class="system__number">02</span>
+                <h3>Refine</h3>
+                <p>
+                  Cook, smelt, fletch, craft and farm with level-gated recipes
+                  and tools.
+                </p>
+              </article>
+
+              <article class="system fade-in">
+                <span class="system__number">03</span>
+                <h3>Equip</h3>
+                <p>
+                  Build your hero around weapons, armour, trinkets, spells and
+                  combat styles.
+                </p>
+              </article>
+
+              <article class="system fade-in">
+                <span class="system__number">04</span>
+                <h3>Delve</h3>
+                <p>
+                  Take your pet, finish the quest chain and confront the Ember
+                  Warden.
+                </p>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section
+          class="section section--compact"
+          id="controls"
+          aria-labelledby="controls-title"
+        >
+          <div class="container controls-layout">
+            <div>
+              <p class="section__eyebrow">Ready your hands</p>
+              <h2 class="section__title" id="controls-title">
+                Simple controls. Deep systems.
+              </h2>
+              <p class="section__intro">
+                Move freely, swap between melee, ranged and magic, and rebind
+                every action from the in-game settings.
+              </p>
+            </div>
+
+            <div>
+              <table class="controls-table">
+                <tbody>
+                  <tr>
+                    <th scope="row">Move</th>
+                    <td>W A S D / Arrows</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Run</th>
+                    <td>Shift</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Attack</th>
+                    <td>Space</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Cast spell</th>
+                    <td>Q</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Interact</th>
+                    <td>E</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Open pack</th>
+                    <td>I / Tab</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Close menus</th>
+                    <td>Esc</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div class="architecture" style="margin-top: 1rem">
+                <code
+                  ><span class="accent">hero</span> → gather → craft → equip ↓
+                  quest → explore → descend ↓
+                  <span class="accent">Ember Warden</span></code
+                >
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="cta" aria-labelledby="cta-title">
+          <div class="container">
+            <div class="cta__panel">
+              <h2 id="cta-title">The embers are waiting.</h2>
+              <p>
+                Create your hero with the Universal LPC character creator and
+                begin a new adventure in the Vale.
+              </p>
+
+              <div class="hero__actions">
+                <a class="button button--primary" data-game-link href="#"
+                  >Play Embervale</a
+                >
+                <a
+                  class="button button--secondary"
+                  data-editor-link
+                  href="#"
+                  rel="noopener"
+                >
+                  View the project
+                </a>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer class="site-footer">
+        <div class="container site-footer__inner">
+          <span>Embervale — Tales of the Emberdeep</span>
+          <span>
+            Created by <a data-author-link href="#" rel="noopener">Mosberg</a> ·
+            Built for
+            <a href="https://perchance.org/" target="_blank" rel="noopener"
+              >Perchance</a
+            >
+          </span>
+        </div>
+      </footer>
+    </div>
+
+    <script src="src/scripts/script.js"></script>
+  </body>
+</html>
