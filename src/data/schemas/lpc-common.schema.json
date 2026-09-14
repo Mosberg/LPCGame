@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://mosberg.github.io/schemas/lpc-common.schema.json",
+  "$id": "https://mosberg.github.io/LPCGame/src/data/schemas/lpc-common.schema.json",
   "title": "LPC Common Metadata",
   "description": "Shared metadata fields used across LPC characters and maps.",
   "type": "object",

@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://mosberg.github.io/schemas/lpc-map.schema.json",
+  "$id": "https://mosberg.github.io/LPCGame/src/data/schemas/lpc-map.schema.json",
   "title": "LPC Map Export",
   "description": "Schema for exported LPC map data, including terrain, props, and spawn points.",
   "type": "object",
