@@ -55,3 +55,9 @@ Created by **[Mosberg](https://github.com/Mosberg)**
 [BUNDLE_URL](https://user.uploads.dev/file/635ea3ca778a92a293d6b05b1f71e65d.js)
 [TILESET_URL](https://user.uploads.dev/file/36c1d0f3ab45543e18be2249439688d7.png)
 [PROPS_URL](https://user.uploads.dev/file/963dc00b94f6a973077d9529d4978be1.png)
+
+### LPC Animal and Monster Creator
+
+**VERSION = 1.0.0**
+[BUNDLE_URL](https://user.uploads.dev/file/fcde6dcee16cffac6ae21cc517fb4a51.js)
+[CATALOG_URL](https://user.uploads.dev/file/27e36c970aba9ca460ae230c015c201e.json)
