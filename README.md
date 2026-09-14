@@ -24,8 +24,12 @@ Here is what I have got so far:
 [LPC Character Creator Edit](https://perchance.org/lpc-character-creator#edit)
 
 **Created by Mosberg**:
-[LPC Character Creator](https://perchance.org/lpc-character-creator-v2)
-[LPC Character Creator Edit](https://perchance.org/lpc-character-creator-v2#edit)
+[LPC Character Creator V2](https://perchance.org/lpc-character-creator-v2)
+[LPC Character Creator V2 Edit](https://perchance.org/lpc-character-creator-v2#edit)
+
+**Created by Mosberg**:
+[LPC Animal and Monster Creator](https://perchance.org/lpc-animal-and-monster-creator)
+[LPC Animal and Monster Creator Edit](https://perchance.org/lpc-animal-and-monster-creator#edit)
 
 **Created by Mosberg**:
 [LPC Map Forge](https://perchance.org/lpc-map-forge)
