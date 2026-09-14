@@ -6,7 +6,7 @@ $meta
     mode = minimal
 
 // Character creation, sprite rendering and animation come from this plugin.
-lpc = {import:lpc-character-creator}
+lpc = {import:lpc-character-creator-v2}
 // Per-user save slots and settings.
 kv = {import:kv-plugin}
 // Shared-world presence: see other heroes wandering the vale, and chat.

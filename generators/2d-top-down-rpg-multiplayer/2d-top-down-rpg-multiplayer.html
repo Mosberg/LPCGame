@@ -1,4 +1,22 @@
-<meta name="author" content="Mosberg" />
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta
+    name="description"
+    content="Play a 2D top-down RPG multiplayer game with shared-world presence, live updates, and chat."
+  />
+  <meta name="author" content="Mosberg" />
+  <meta
+    name="keywords"
+    content="lpc, character creator, sprite, spritesheet, avatar, pixel art, rpg, fantasy, multiplayer"
+  />
+  <link
+    rel="icon"
+    href="https://mosberg.github.io/LPCGame/src/images/embervale.webp"
+  />
+
+  <title>2D Top-Down RPG Multiplayer</title>
+</head>
 
 <script type="text/x-server-plugin">
   // ============================================================================
@@ -514,6 +532,177 @@
   .btn.danger {
     border-color: rgba(224, 72, 60, 0.5);
     color: #f0a89f;
+  }
+  .btn.primary {
+    background: linear-gradient(
+      180deg,
+      rgba(122, 92, 38, 1),
+      rgba(74, 54, 22, 1)
+    );
+    border-color: rgba(240, 200, 120, 0.75);
+    color: #fff6df;
+  }
+
+  /* ---------------- Character studio modal ---------------- */
+  #uiModal {
+    position: absolute;
+    inset: 0;
+    background: rgba(5, 7, 10, 0.68);
+    z-index: 60;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+  }
+  #uiModalCard {
+    width: min(560px, 94vw);
+    max-height: 84vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  #uiModalCard.wide {
+    width: min(760px, 94vw);
+  }
+  #uiModalCard.studio {
+    width: min(1560px, 97vw);
+    height: 92vh;
+    max-height: 96vh;
+  }
+  #uiModalCard.studio #uiModalBody {
+    padding: 0;
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
+  }
+  #studioBody {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  #studioInfo {
+    margin: 10px 14px 0;
+  }
+  #studioCreator {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: min(860px, 84vh);
+  }
+  /* Below the creator's own 1240px breakpoint it switches to a flowing,
+     auto-height layout — give it the whole screen and let the modal scroll. */
+  @media (max-width: 1240px) {
+    #uiModal {
+      padding: 0;
+    }
+    #uiModalCard.studio {
+      width: 100vw;
+      height: 100vh;
+      max-height: 100vh;
+      border-radius: 0;
+    }
+    #studioCreator {
+      height: auto;
+      flex: 0 0 auto;
+    }
+  }
+  /* Hero library (character studio -> Library) */
+  .heroLib {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .heroLibRow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 9px;
+    border-radius: 8px;
+    background: rgba(20, 24, 32, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+  }
+  .heroLibTile {
+    width: 64px;
+    height: 64px;
+    flex: 0 0 auto;
+    image-rendering: pixelated;
+    background: rgba(0, 0, 0, 0.35);
+    border-radius: 6px;
+  }
+  .heroLibMeta {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .heroLibMeta span {
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .heroLibActs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  #uiModalHead {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 12px 16px 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  #uiModalTitle {
+    color: #f0c878;
+    font-size: 20px;
+  }
+  #uiModalBody {
+    padding: 12px 16px;
+    overflow-y: auto;
+    text-align: left;
+  }
+  #uiModalFoot {
+    padding: 10px 16px 14px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+  .setCol {
+    margin-top: 12px;
+  }
+  .setCol label {
+    display: block;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: #8b9bb4;
+    margin-bottom: 5px;
+  }
+  .setCol input {
+    width: 100%;
+    box-sizing: border-box;
+    font-family: inherit;
+    font-size: 14px;
+    padding: 7px 9px;
+    border-radius: 6px;
+    background: rgba(20, 24, 32, 0.95);
+    color: #e9edf5;
+    border: 1px solid rgba(240, 200, 120, 0.35);
+  }
+  .setCol input.mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px;
+  }
+  .chipRow .btn {
+    margin: 0 6px 6px 0;
   }
 
   /* Character preview canvas in the sheet tab */
@@ -1491,6 +1680,17 @@
     <div id="dialogueHint">↑↓ choose · Enter/Space select · Esc close</div>
   </div>
 
+  <div id="uiModal" class="hidden">
+    <div id="uiModalCard" class="panel">
+      <div id="uiModalHead">
+        <span id="uiModalTitle"></span>
+        <button id="uiModalClose" class="btn small">✕</button>
+      </div>
+      <div id="uiModalBody"></div>
+      <div id="uiModalFoot"></div>
+    </div>
+  </div>
+
   <div id="overlay" class="hidden">
     <div id="menuPanel" class="panel">
       <div id="menuTabs">
@@ -1522,12 +1722,13 @@
         <button class="btn wide" id="newGameBtn">⚔ New Adventure</button>
         <button class="btn wide" id="continueBtn">↺ Continue</button>
         <button class="btn wide" id="wardrobeBtn">✎ Character Wardrobe</button>
+        <button class="btn wide" id="studioBtn">🎭 Character Studio</button>
         <button class="btn wide" id="howToBtn">? How to Play</button>
       </div>
     </div>
     <div id="titleFoot">
-      Featuring the Universal LPC character creator · Move WASD/arrows · Attack
-      Space · Interact E
+      Featuring the Universal LPC Character Creator V2 · Move WASD/arrows ·
+      Attack Space · Interact E
     </div>
   </div>
 
